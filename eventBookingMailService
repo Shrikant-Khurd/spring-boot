@@ -1,0 +1,82 @@
+#controller
+@GetMapping("/confirm/booking/{bookingId}/{userId}")
+	public ResponseEntity<String> confirmBooking(@PathVariable int bookingId, @PathVariable int userId)
+			throws UnsupportedEncodingException, MessagingException {
+		eventsService.confirmBooking(bookingId, userId);
+		return new ResponseEntity<String>("Booking request accepted and email send successfully.", HttpStatus.OK);
+	}
+  
+  #service
+  public EventBooking confirmBooking(int bookingId,int userId) throws UnsupportedEncodingException, MessagingException {
+		Users getUser = userRepository.findById(userId).get();
+		EventBooking confirmBooking = eventBookingRepository.findById(bookingId).get();
+		
+		// if (eventBooking.getBookingStatus() != BookingStatus.PENDING)
+		// UpdateEvent.setEventName(event.getEventName());
+		confirmBooking.setBookingStatus(BookingStatus.CONFIRM);
+		
+		
+		 eventBookingRepository.save(confirmBooking);
+		return sendBookingConfirmationEmail(getUser);
+		
+
+	}
+
+	private EventBooking sendBookingConfirmationEmail(Users getUser) throws UnsupportedEncodingException, MessagingException {
+		String toAddress = getUser.getEmail();
+		String fromAddress = "Trng2@evolvingsols.com";
+		String senderName = "Event Management";
+
+		String subject = "Booking Confirm";
+
+		String content = "<p>Hello " + getUser.getUserName() + "</p>"
+				+ "<p>For security reason, you're required to use the following " + "One Time Password to login:</p>"
+				+ "<p>Thank you</p>";
+
+		MimeMessage message = mailSender.createMimeMessage();
+		MimeMessageHelper helper = new MimeMessageHelper(message);
+
+		helper.setFrom(fromAddress, senderName);
+		helper.setTo(toAddress);
+		helper.setSubject(subject);
+
+		helper.setText(content, true);
+
+		mailSender.send(message);
+
+		return null;
+	}
+  
+  #Vs code
+    <button mat-icon-button (click)="confirmBooking(booking.bookingId,booking.userBookedEvents.id)"
+                            *ngIf="booking.bookingStatus!=0; else block3">
+                            <mat-icon color="success">how_to_reg</mat-icon>
+
+                        </button>
+                        
+confirmBooking(bookingId:number,userId:number){
+    this._eventOrganizerService.confirmBooking(bookingId,userId).subscribe(response => {
+      this.msg = response;
+      console.log(this.msg);
+      
+      alert(this.msg);
+
+    // },
+    // error => {
+     
+    //   this.errorMsg=error;
+    //   alert(this.errorMsg.error);
+    //   console.log("ERROR: "+error.message);
+     
+     });
+    
+    
+    setTimeout(() => {
+      location.reload();
+     // this._router.navigate(['/all-organizer-events']);
+    }, 1000);
+    
+    
+     confirmBooking(bookingId:any,userId:any){
+    return this._httpClient.get(this.baseURL + "/confirm/booking/" + bookingId+"/"+userId, { responseType: 'JSON' as 'text' });
+  }
